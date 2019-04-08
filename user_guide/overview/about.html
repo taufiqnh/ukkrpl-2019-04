@@ -1,0 +1,505 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Login extends CI_Controller{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->model('M_admin');
+        $this->load->library('form_validation');
+    }
+
+    public function index()
+    {
+        $this->load->view('v_login');
+    }
+
+    public function admin_login()
+    {
+		$this->form_validation->set_rules('username', 'Username', 'trim|required', array('required' => 'Username harus diisi!'));
+		$this->form_validation->set_rules('password', 'Password', 'trim|required', array('required' => 'Password harus diisi!'));
+        if ($this->form_validation->run() == true) {
+            if ($this->M_admin->do_admin_login()->num_rows() > 0) {
+                $data = $this->M_admin->do_admin_login()->row();
+                $dataadmin = array(
+                    'login' => TRUE,
+                    'username' => $data->username,
+                    'password' => $data->password,
+                    'nama_admin' => $data->nama_admin,
+                    'level' => $data->id_level,
+                    'id_admin' => $data->id_admin,
+                    'role' => 'Admin'
+                );
+                $this->session->set_userdata($dataadmin);
+                redirect('home','refresh');
+            }
+            else {
+                $this->session->set_flashdata('pesan', 'Username dan password salah');
+                redirect('Admin');
+            }
+        }
+        else {
+            $this->session->set_flashdata('pesan', validation_errors());
+            redirect('Admin');
+        }
+    }
+
+    public function dataadmin()
+    {
+        $data['konten'] = 'v_admin';
+        $data['active'] = 'Admin';
+        $data['judul'] = 'Data Admin';
+        $data['admin'] = $this->M_admin->do_admin_tampil();
+        $data['count'] = $this->M_admin->do_admin_hitung();
+        $data['level'] = $this->M_admin->level_tampil();;
+        $this->load->view('template', $data);
+    }
+
+    public function logout()
+    {
+        $this->session->set_userdata('username', FALSE);
+        $this->session->sess_destroy();
+        redirect('Login','refresh');
+    }
+}
+<?php
+
+class Pelanggan extends CI_Controller {
+    public function __construct()
+    {
+	parent::__construct();
+    $this->load->model("M_pelanggan");
+    $this->load->model('M_tarif');
+    $this->load->library('form_validation');
+	}
+
+	public function index()
+	{
+	// load view admin/overview.php
+	$this->load->model('M_admin');
+	$this->M_admin->keamanan();
+   // $data["pelanggans"] = $this->M_pelanggan->getAll();
+    $data['pelanggans'] = $this->M_pelanggan->do_pelanggan_tampil();
+    $data['count'] = $this->M_pelanggan->do_pelanggan_hitung();
+    $data['tarif'] = $this->M_tarif->do_tarif_tampil();
+    $this->load->view("datapelanggan/v_pelanggan", $data);
+	}
+	public function add()
+    {
+        $pelanggan = $this->M_pelanggan;
+        $validation = $this->form_validation;
+        $validation->set_rules($pelanggan->rules());
+
+        if ($validation->run()) {
+            $pelanggan->save();
+            $this->session->set_flashdata('success', 'Berhasil disimpan');
+        }
+        $data['tarif'] = $this->M_tarif->do_tarif_tampil();
+        $this->load->view("datapelanggan/new_pelanggan", $data);
+    }
+
+    public function edit($id = null)
+    {
+        if (!isset($id)) redirect('datapelanggan/v_pelanggan');
+       
+        $pelanggan = $this->M_pelanggan;
+        $validation = $this->form_validation;
+        $validation->set_rules($pelanggan->rules());
+
+        if ($validation->run()) {
+            $pelanggan->update();
+            $this->session->set_flashdata('success', 'Berhasil disimpan');
+        }
+
+        $data["pelanggan"] = $pelanggan->getById($id);
+        $data['tarif'] = $this->M_tarif->do_tarif_tampil();
+        if (!$data["pelanggan"]) show_404();
+        
+        $this->load->view("datapelanggan/edit_pelanggan", $data);
+    }
+
+    public function delete($id=null)
+    {
+        if (!isset($id)) show_404();
+        
+        if ($this->M_pelanggan->delete($id)) {
+            redirect(site_url('pelanggan'));
+        }
+    }
+    public function get_pelanggan_id($id)
+    {
+        $data = $this->M_pelanggan->get_datapelanggan_id($id);
+        echo (json_encode($data));
+    }
+}
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
+
+class M_pelanggan extends CI_Model
+{
+    private $_table = "pelanggan";
+
+    public $id_pelanggan;
+    public $no_meter;
+    public $nama;
+    public $username;
+    public $password;
+    public $alamat;
+    public $id_tarif;
+
+    public function rules()
+    {
+        return [
+            ['field' => 'no_meter',
+            'label' => 'No Meter',
+            'rules' => 'required'],
+
+            ['field' => 'nama',
+            'label' => 'Nama',
+            'rules' => 'required'],
+
+            ['field' => 'username',
+            'label' => 'Username',
+            'rules' => 'required'],
+
+            ['field' => 'password',
+            'label' => 'Password',
+            'rules' => 'required'],
+
+            ['field' => 'alamat',
+            'label' => 'Alamat',
+            'rules' => 'required'],
+
+            ['field' => 'id_tarif',
+            'label' => 'Daya',
+            'rules' => 'numeric']
+        ];
+    }
+
+    public function do_pelanggan_tampil()
+    {
+        return $this->db->query("SELECT * FROM pelanggan INNER JOIN tarif ON pelanggan.id_tarif=tarif.id_tarif ORDER BY nama ASC")->result();
+    }
+
+    public function do_pelanggan_hitung()
+    {
+        return $this->db->query("SELECT * FROM pelanggan")->num_rows();
+    }
+
+    public function getAll()
+    {
+        return $this->db->get($this->_table)->result();
+    }
+    
+    public function getById($id)
+    {
+        return $this->db->get_where($this->_table, ["id_pelanggan" => $id])->row();
+    }
+
+    public function save()
+    {
+        $post = $this->input->post();
+        $this->no_meter = $post["no_meter"];
+        $this->nama = $post["nama"];
+        $this->username = $post["username"];
+        $this->password = $post["password"];
+        $this->alamat = $post["alamat"];
+        $this->id_tarif = $post["id_tarif"];
+        $this->db->insert($this->_table, $this);
+    }
+
+    public function update()
+    {
+        $post = $this->input->post();
+        $this->id_pelanggan = $post["id"];
+        $this->no_meter = $post["no_meter"];
+        $this->nama = $post["nama"];
+        $this->username = $post["username"];
+        $this->password = $post["password"];
+        $this->alamat = $post["alamat"];
+        $this->id_tarif = $post["id_tarif"];
+        $this->db->update($this->_table, $this, array('id_pelanggan' => $post['id']));
+    }
+
+    public function delete($id)
+    {
+        return $this->db->delete($this->_table, array("id_pelanggan" => $id));
+    }
+    public function get_datapelanggan_id($id)
+    {
+        return $this->db->query("SELECT * FROM pelanggan WHERE id_pelanggan='$id'")->row();
+    }
+    
+}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<?php $this->load->view("admin/_partials/head.php") ?>
+</head>
+
+<body id="page-top">
+
+	<?php $this->load->view("admin/_partials/navbar.php") ?>
+	<div id="wrapper">
+
+		<?php $this->load->view("admin/_partials/sidebar.php") ?>
+
+		<div id="content-wrapper">
+
+			<div class="container-fluid">
+
+				<?php $this->load->view("admin/_partials/breadcrumb.php") ?>
+
+				<!-- DataTables -->
+				<div class="card mb-3">
+					<div class="card-header">
+						<a href="<?php echo site_url('pelanggan/add') ?>"><i class="fas fa-plus"></i> Tambah Data</a>
+					</div>
+					<div class="card-body">
+
+						<div class="table-responsive">
+							<table class="table table-hover" id="dataTabless" width="100%" cellspacing="0">
+								<thead>
+									<tr>
+										<th>No Meter</th>
+										<th>Nama</th>
+										<th>Alamat</th>
+										<th>Daya</th>
+										<th>Aksi</th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php foreach ($pelanggans as $pelanggan): ?>
+									<tr>
+									<td><?=$pelanggan->no_meter;?></td>
+                                    <td><?=$pelanggan->nama;?></td>
+									<td><?=$pelanggan->alamat;?></td>
+                                    <td><?=$pelanggan->daya;?> Watt</td>
+										<td width="100">
+										<button style="float: left;margin-right: 1%" data-toggle="modal" data-target="#modal-edit" class="btn btn-primary" onclick="
+	         					edit('<?=$pelanggan->id_pelanggan?>','<?=$pelanggan->nama?>','<?=$pelanggan->username?>','<?=$pelanggan->password?>','<?=$pelanggan->alamat?>','<?=$pelanggan->id_tarif?>','<?=$pelanggan->no_meter?>')"><span class="fa fa-edit"></span></button>
+											<a onclick="deleteConfirm('<?=site_url('pelanggan/delete/'.$pelanggan->id_pelanggan) ?>')"
+											 href="#!" class="btn btn-small text-danger"><i class="fas fa-trash"></i></a>
+										</td>
+									</tr>
+									<?php endforeach; ?>
+
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+
+			</div>
+			<!-- /.container-fluid -->
+
+			<!-- Sticky Footer -->
+			<?php $this->load->view("admin/_partials/footer.php") ?>
+
+		</div>
+		<!-- /.content-wrapper -->
+
+	</div>
+	<!-- /#wrapper -->
+
+	<div class="modal fade" id="modal-edit" style="display: none;">
+    <div class="modal-dialog">
+		<form class="form-horizontal" action="<?=base_url('Pelanggan/edit')?>" method="post" >
+        <div class="modal-content">
+				<div class="modal-header">
+          <h4 class="modal-title">Modal Edit</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="box-body">
+              	<div class="form-group">
+                  <label>Nama</label>
+                  <input type="text" class="form-control" id="edit-nama" name="nama" placeholder="Nama">
+                  <span class="help-block"></span>
+                </div>
+                <div class="form-group">
+                  <label>Username</label>
+                  <input type="text" class="form-control" id="edit-username" name="username" placeholder="Username">
+                  <span class="help-block"></span>
+                </div>              
+                <div class="form-group">
+                  <label>Nomor meter</label>
+                  <input type="text" class="form-control" id="edit-no_meter" name="no_meter" placeholder="No Meter">
+                  <span class="help-block"></span>
+                </div> 
+                 <div class="form-group">
+                  <label>Alamat</label>
+                  <textarea class="form-control" id="edit-alamat" name="alamat" placeholder="Alamat"></textarea>
+                  <span class="help-block"></span>
+                </div> 
+                <div class="form-group">
+                  <label>Daya</label>
+                  <select class="form-control" name="id_tarif" id="edit-id_tarif">
+                    <option value="" style="display:none">Pilih Level</option>
+                    <?php foreach ($tarif as $t): ?>
+                      <option value="<?=$t->id_tarif?>"><?=$t->daya?></option>
+                    <?php endforeach ?>
+                  </select>                 
+                  <span class="help-block"></span>
+                </div>              
+              </div>
+              <!-- /.box-body -->
+              <input type="hidden" name="id_pelanggan" id="edit-id_pelanggan">
+              <input type="hidden" name="password" id="edit-password">
+              <div class="box-footer">
+                <button type="submit" class="btn btn-primary">Submit</button>
+              </div>
+            <?=form_close()?>
+            </div>          
+        </div>
+         <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+</div>
+
+	<?php $this->load->view("admin/_partials/scrolltop.php") ?>
+	<?php $this->load->view("admin/_partials/modal.php") ?>
+
+	<?php $this->load->view("admin/_partials/js.php") ?>
+
+	<script>
+		function edit(id_pelanggan,nama,username,password,alamat,id_tarif, no_meter) {		
+		$('#edit-id_pelanggan').val(id_pelanggan);
+		$('#edit-nama').val(nama);
+		$('#edit-username').val(username);
+		$('#edit-password').val(password);
+    $('#edit-alamat').val(alamat);
+		$('#edit-id_tarif').val(id_tarif);
+    $('#edit-no_meter').val(no_meter);
+	}
+	function deleteConfirm(url){
+		$('#btn-delete').attr('href', url);
+		$('#deleteModal').modal();
+	}
+	$(document).ready( function() {
+		       $('#dataTabless').dataTable( {
+		         "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]]
+		       } );
+		    } );
+	</script>
+</body>
+
+</html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<?php $this->load->view("admin/_partials/head.php") ?>
+</head>
+
+<body id="page-top">
+
+	<?php $this->load->view("admin/_partials/navbar.php") ?>
+	<div id="wrapper">
+
+		<?php $this->load->view("admin/_partials/sidebar.php") ?>
+
+		<div id="content-wrapper">
+
+			<div class="container-fluid">
+
+				<?php $this->load->view("admin/_partials/breadcrumb.php") ?>
+
+				<?php if ($this->session->flashdata('success')): ?>
+				<div class="alert alert-success" role="alert">
+					<?php echo $this->session->flashdata('success'); ?>
+				</div>
+				<?php endif; ?>
+
+				<div class="card mb-3">
+					<div class="card-header">
+						<a href="<?php echo site_url('pelanggan/') ?>"><i class="fas fa-arrow-left"></i> Back</a>
+					</div>
+					<div class="card-body">
+
+						<form action="<?php base_url('pelanggan/add') ?>" method="post" enctype="multipart/form-data" >
+							<div class="form-group">
+								<label for="no_meter">No Meter*</label>
+								<input class="form-control <?php echo form_error('no_meter') ? 'is-invalid':'' ?>"
+								 type="text" name="no_meter" placeholder="No Meter" />
+								<div class="invalid-feedback">
+									<?php echo form_error('no_meter') ?>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label for="nama">Nama*</label>
+								<input class="form-control <?php echo form_error('nama') ? 'is-invalid':'' ?>"
+								 type="text" name="nama" min="0" placeholder="Nama" />
+								<div class="invalid-feedback">
+									<?php echo form_error('nama') ?>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label for="username">Username*</label>
+								<input class="form-control <?php echo form_error('username') ? 'is-invalid':'' ?>"
+								 type="text" name="username" placeholder="Username" />
+								<div class="invalid-feedback">
+									<?php echo form_error('username') ?>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label for="password">Password*</label>
+								<input class="form-control <?php echo form_error('password') ? 'is-invalid':'' ?>"
+								 type="password" name="password" min="0" placeholder="Password" />
+								<div class="invalid-feedback">
+									<?php echo form_error('password') ?>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label for="alamat">Alamat*</label>
+								<input class="form-control <?php echo form_error('alamat') ? 'is-invalid':'' ?>"
+								 type="text" name="alamat" placeholder="Alamat" />
+								<div class="invalid-feedback">
+									<?php echo form_error('alamat') ?>
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label class="control-label mb-10" for="alamat">Daya*</label>
+								<select class="selectpicker form-control" data-style="form-control btn-default" name="id_tarif" required="">
+								<option>--Pilih--</option>
+									<?php foreach ($tarif as $t): ?>
+										<option value="<?=$t->id_tarif;?>"><?=$t->daya;?> Watt</option>
+									<?php endforeach; ?>
+								</select>
+							</div>
+
+							<input class="btn btn-success" type="submit" name="btn" value="Save" />
+						</form>
+
+					</div>
+
+					<div class="card-footer small text-muted">
+						* required fields
+					</div>
+
+
+				</div>
+				<!-- /.container-fluid -->
+
+				<!-- Sticky Footer -->
+				<?php $this->load->view("admin/_partials/footer.php") ?>
+
+			</div>
+			<!-- /.content-wrapper -->
+
+		</div>
+		<!-- /#wrapper -->
+
+
+		<?php $this->load->view("admin/_partials/scrolltop.php") ?>
+
+		<?php $this->load->view("admin/_partials/js.php") ?>
+
+</body>
+
+</html>
