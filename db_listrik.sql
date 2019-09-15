@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: 15 Sep 2019 pada 17.58
+-- Generation Time: 15 Sep 2019 pada 18.49
 -- Versi Server: 10.1.29-MariaDB
 -- PHP Version: 7.2.0
 
@@ -42,7 +42,7 @@ CREATE TABLE `admin` (
 
 INSERT INTO `admin` (`id_admin`, `username`, `password`, `nama_admin`, `id_level`) VALUES
 (11, 'admin', '81DC9BDB52D04DC20036DBD8313ED055', 'Taufiq', 1),
-(12, 'bank', '6D2E1A6D8ED8B049C5773B212A4619AD', 'bank satu', 3);
+(13, 'bank', '827ccb0eea8a706c4c34a16891f84e7b', 'Aku bank', 3);
 
 -- --------------------------------------------------------
 
@@ -84,11 +84,6 @@ CREATE TABLE `pelanggan` (
 --
 
 INSERT INTO `pelanggan` (`id_pelanggan`, `username`, `password`, `nomor_kwh`, `nama_pelanggan`, `alamat`, `id_tarif`) VALUES
-(18, 'aku', '871237BF25BA34556A2755FDF2F0EE44', '232425262728', 'Akuu', 'Pleret', 5),
-(19, 'munir', 'eedae20fc3c7a6e9c5b1102098771c70', '989796959493', 'Mun', 'Bantul', 4),
-(21, 'has', '81dc9bdb52d04dc20036dbd8313ed055', '13214312', 'has', 'adasc', 3),
-(23, 'bb', '21ad0bd836b90d08f4cf640b4c298e7c', '2222', 'bb', 'bbb', 4),
-(24, 'ww', 'ad57484016654da87125db86f4227ea3', '1567', 'ww', 'asd', 4),
 (25, 'ee', '08a4415e9d594ff960030b921d42b91e', '999', 'ee', 'as', 6);
 
 -- --------------------------------------------------------
@@ -242,7 +237,7 @@ ALTER TABLE `tarif`
 -- AUTO_INCREMENT for table `admin`
 --
 ALTER TABLE `admin`
-  MODIFY `id_admin` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id_admin` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `level`
